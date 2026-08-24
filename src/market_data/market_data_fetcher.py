@@ -6,6 +6,7 @@ import logging
 from pathlib import Path
 
 os.makedirs("logs", exist_ok=True)
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename="logs/market_data_fetcher.log", level=logging.INFO)
 

@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from backtester.data.bar import Bar
+from ..data.bar import Bar
 
 class SignalType(Enum):
     LONG = 1
@@ -25,8 +25,9 @@ class Event:
     pass
 
 class MarketEvent(Event):
-    def __init__(self, bar: Bar):
+    def __init__(self, symbol: str, bar: Bar):
         self.type = EventType.MARKET
+        self.symbol = symbol
         self.bar = bar
 
 class SignalEvent(Event):
@@ -46,11 +47,11 @@ class OrderEvent(Event):
         self.direction = direction
 
 class FillEvent(Event):
-    def __init__(self, time_index: datetime, symbol: str, quantity: int, direction: Direction, fill_cost: float, commission: float = 0.0):
+    def __init__(self, time_index: datetime, symbol: str, quantity: int, direction: Direction, fill_price: float, commission: float = 0.0):
         self.type = EventType.FILL
         self.time_index = time_index
         self.symbol = symbol
         self.quantity = quantity
         self.direction = direction
-        self.fill_cost = fill_cost
+        self.fill_price = fill_price
         self.commission = commission

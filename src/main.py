@@ -3,7 +3,7 @@ from pathlib import Path
 
 from backtester.utils.data_feed import DataFeed
 from backtester.utils.event_manager import EventManager
-from backtester.core.execution_handler import ExecutionHandler
+from backtester.core.broker import Broker
 
 project_root = Path(__file__).resolve().parents[2]
 
@@ -13,7 +13,7 @@ class SimulationEngine:
         self.event_manager = event_manager
 
     def run(self):
-        print("Starting simulation loop...")
+        print("Starting simulation loop...\n")
 
         for bar in self.data_feed:
             self.event_manager.publish("market_bars", {
@@ -35,11 +35,12 @@ if __name__ == "__main__":
 
     event_manager = EventManager()
     data_feed = DataFeed(project_root / "output_data" / args.filename)
-    
-    execution_handler = ExecutionHandler(
+
+    broker = Broker(
         event_manager=event_manager, 
+        initial_capital=args.initial_capital,
         commission_per_share=args.commission_per_share, 
-        slippage_pct=args.slippage_perc
+        slippage=args.slippage_perc
     )
 
     engine = SimulationEngine(data_feed=data_feed, event_manager=event_manager)

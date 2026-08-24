@@ -1,7 +1,6 @@
 import csv
 from pathlib import Path
 from datetime import datetime
-
 from ..data.bar import Bar
 
 class DataFeed:
