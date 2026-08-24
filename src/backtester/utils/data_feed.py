@@ -2,7 +2,7 @@ import csv
 from pathlib import Path
 from datetime import datetime
 
-from .bar import Bar
+from ..data.bar import Bar
 
 class DataFeed:
     def __init__(self, filepath: Path):
