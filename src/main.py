@@ -7,6 +7,7 @@ from backtester.core.broker import Broker
 
 project_root = Path(__file__).resolve().parents[2]
 
+
 class SimulationEngine:
     def __init__(self, data_feed: DataFeed, event_manager: EventManager):
         self.data_feed = data_feed

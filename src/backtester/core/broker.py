@@ -3,6 +3,7 @@ from ..data.events import OrderEvent, FillEvent, MarketEvent, Direction
 from ..utils.event_manager import EventManager
 from ..core.portfolio import Portfolio
 
+
 class Broker:
     def __init__(self, event_manager: EventManager, initial_capital: float, commission_per_share: float, slippage: float):
         self.event_manager = event_manager
@@ -39,6 +40,8 @@ class Broker:
 
             self.portfolio.update_on_fill(fill)
             self.event_manager.publish("order_fills", fill)
+
+        self.portfolio.update_valuation()
 
     @property
     def cash(self) -> float:
