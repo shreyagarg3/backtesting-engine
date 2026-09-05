@@ -17,6 +17,7 @@ class SimulationEngine:
 
     def run(self):
         for bar in self.data_feed:
+            # TO DO: Add support for multi-asset backtesting (hardcoded 'BTC' for now)
             self.event_manager.publish("market_bars", MarketEvent(symbol="BTC", bar=bar))
 
 
