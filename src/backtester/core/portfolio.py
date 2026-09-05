@@ -1,5 +1,8 @@
 from collections import defaultdict
 from ..data.events import FillEvent
+from ..utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class Portfolio:
@@ -21,10 +24,19 @@ class Portfolio:
 
         self.cash -= (trade_cost * direction_mult) + fill_event.commission
 
+        logger.info(
+            f"[{fill_event.symbol}] PORTFOLIO FILL UPDATED: {fill_event.direction} {fill_event.quantity} shares "
+            f"@ £{fill_event.fill_cost:.2f} (Cost: £{trade_cost:.2f}, Fee: £{fill_event.commission:.2f}) | "
+            f"New Position: {self._positions[fill_event.symbol]} shares | Cash Balance: £{self.cash:.2f}"
+        )
+
+    def get_position(self, symbol: str) -> int:
+        return self._positions[symbol]
+
     def update_valuation(self):
         holdings_market_value = sum(
             quantity * self._latest_prices.get(symbol, 0.0)
             for symbol, quantity in self._positions.items()
         )
 
-        self.total_value = self.cash + holdings_market_value
+        self.total_valuation = self.cash + holdings_market_value

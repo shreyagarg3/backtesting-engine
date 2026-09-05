@@ -1,7 +1,10 @@
 from collections import deque
 from ..data.events import OrderEvent, FillEvent, MarketEvent, Direction
 from ..utils.event_manager import EventManager
+from ..utils.logger import get_logger
 from ..core.portfolio import Portfolio
+
+logger = get_logger(__name__)
 
 
 class Broker:
@@ -20,17 +23,26 @@ class Broker:
         self._pending_orders.append(order_event)
 
     def on_market_bar(self, market_event: MarketEvent):
-        closing_price = market_event["bar"].close
+        bar = market_event.bar
+        symbol = market_event.symbol
 
+        unprocessed_orders = deque()
         while len(self._pending_orders) > 0:
             order: OrderEvent = self._pending_orders.popleft()
-            fill_price = closing_price * (1.0 + (self.slippage if Direction.BUY else -self.slippage))
 
-            # Minimum of £1 commission per share
+            # Only execute orders for the current bar's symbol
+            if order.symbol != symbol:
+                unprocessed_orders.append(order)
+                continue
+
+            slippage_factor = self.slippage if order.direction == Direction.BUY else -self.slippage
+            fill_price = bar.close * (1.0 + slippage_factor)
+
+            # Calculate Commission (£1.00 min)
             commission = max(1.00, self.commission_per_share * order.quantity)
 
             fill = FillEvent(
-                time_index=market_event["bar"].timestamp,
+                time_index=bar.timestamp,
                 symbol=order.symbol,
                 quantity=order.quantity,
                 direction=order.direction,
@@ -38,10 +50,15 @@ class Broker:
                 commission=commission,
             )
 
+            logger.info(
+                f"ORDER FILLED: {fill.direction} {fill.quantity} {fill.symbol} "
+                f"@ £{fill.fill_price:.2f} (Slippage: {slippage_factor:+.4%}, Commission: £{commission:.2f})"
+            )
+
             self.portfolio.update_on_fill(fill)
             self.event_manager.publish("order_fills", fill)
 
-        self.portfolio.update_valuation()
+        self._pending_orders = unprocessed_orders
 
     @property
     def cash(self) -> float:

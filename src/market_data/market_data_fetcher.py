@@ -1,16 +1,12 @@
 import argparse
 import csv
 import requests
-import os
-import logging
 from pathlib import Path
-
-os.makedirs("logs", exist_ok=True)
-
-logger = logging.getLogger(__name__)
-logging.basicConfig(filename="logs/market_data_fetcher.log", level=logging.INFO)
+from ..backtester.utils.logger import get_logger
 
 project_root = Path(__file__).resolve().parents[2]
+logger = get_logger(__name__, "logs/market_data_fetcher.log")
+
 
 class MarketDataFetcher:
     def __init__(self, start_date: str, end_date: str, symbol: str, timeframe: str, base_url: str, output_data: str, symbol_format: str | None=None):

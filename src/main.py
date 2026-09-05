@@ -4,6 +4,8 @@ from pathlib import Path
 from backtester.utils.data_feed import DataFeed
 from backtester.utils.event_manager import EventManager
 from backtester.core.broker import Broker
+from backtester.data.events import MarketEvent
+from backtester.strategies.sma_crossover_strategy import SMACrossoverStrategy
 
 project_root = Path(__file__).resolve().parents[2]
 
@@ -14,15 +16,8 @@ class SimulationEngine:
         self.event_manager = event_manager
 
     def run(self):
-        print("Starting simulation loop...\n")
-
         for bar in self.data_feed:
-            self.event_manager.publish("market_bars", {
-                "type": "MARKET_BAR",
-                "bar": bar
-            })
-
-        print("\n--- Backtest Complete ---")
+            self.event_manager.publish("market_bars", MarketEvent(symbol="BTC", bar=bar))
 
 
 if __name__ == "__main__":
@@ -42,6 +37,12 @@ if __name__ == "__main__":
         initial_capital=args.initial_capital,
         commission_per_share=args.commission_per_share, 
         slippage=args.slippage_perc
+    )
+
+    sma_crossover_strategy = SMACrossoverStrategy(
+        event_manager=event_manager,
+        fast_window=10,
+        slow_window=50
     )
 
     engine = SimulationEngine(data_feed=data_feed, event_manager=event_manager)

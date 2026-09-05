@@ -31,10 +31,10 @@ class MarketEvent(Event):
         self.bar = bar
 
 class SignalEvent(Event):
-    def __init__(self, symbol: str, datetime_obj: datetime, signal_type: SignalType, strength: float = 1.0):
+    def __init__(self, symbol: str, timestamp: datetime, signal_type: SignalType, strength: float = 1.0):
         self.type = EventType.SIGNAL
         self.symbol = symbol
-        self.datetime = datetime_obj
+        self.timestamp = timestamp
         self.signal_type = signal_type
         self.strength = strength
 

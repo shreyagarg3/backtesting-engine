@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any
 from collections import defaultdict, deque
-
 from ..data.events import SignalEvent, MarketEvent, Bar
 from ..utils.event_manager import EventManager
 
@@ -14,9 +13,8 @@ class BaseStrategy(ABC):
         self.event_manager.subscribe("market_bars", self.on_market_bar)
 
     def on_market_bar(self, market_event: MarketEvent):
-        bar = market_event["bar"]
-        self.symbol_data[bar.symbol].append(bar)
-        self.calculate_signals(bar.symbol, bar)
+        self.symbol_data[market_event.symbol].append(market_event.bar)
+        self.calculate_signals(market_event.symbol, market_event.bar)
 
     @abstractmethod
     def calculate_signals(self, symbol: str, bar: Bar):
@@ -25,7 +23,7 @@ class BaseStrategy(ABC):
     def _emit_signal(self, symbol: str, timestamp: Any, signal_type: str, strength: float):
         signal = SignalEvent(
             symbol=symbol,
-            datetime=timestamp,
+            timestamp=timestamp,
             signal_type=signal_type,
             strength=strength
         )
