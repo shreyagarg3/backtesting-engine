@@ -4,10 +4,14 @@ from pathlib import Path
 from backtester.utils.data_feed import DataFeed
 from backtester.utils.event_manager import EventManager
 from backtester.core.broker import Broker
+from backtester.core.execution_handler import ExecutionHandler
 from backtester.data.events import MarketEvent
 from backtester.strategies.sma_crossover_strategy import SMACrossoverStrategy
+from backtester.strategies.base_strategy import BaseStrategy
+from backtester.utils.logger import get_logger
 
-project_root = Path(__file__).resolve().parents[2]
+project_root = Path(__file__).resolve().parents[1]
+logger = get_logger(__name__)
 
 
 class SimulationEngine:
@@ -20,13 +24,18 @@ class SimulationEngine:
             # TO DO: Add support for multi-asset backtesting (hardcoded 'BTC' for now)
             self.event_manager.publish("market_bars", MarketEvent(symbol="BTC", bar=bar))
 
+    def determine_strategy(self, strategy: str, event_manager: EventManager) -> BaseStrategy:
+        match strategy:
+            case "sma":
+                return SMACrossoverStrategy(event_manager=event_manager, fast_window=10, slow_window=50)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run a backtest against historical market data.")
+    parser.add_argument("-s", "--strategy", required=True, help="Name of the strategy to backtest against.")
     parser.add_argument("-f", "--filename", required=True, help="Name of the CSV file (stored in output_data directory).")
     parser.add_argument("-i", "--initial-capital", type=float, default=100000.0, help="Initial cash balance.")
     parser.add_argument("-c", "--commission-per-share", type=float, default=0.005, help="The amount of commission to be paid per share bought/sold.")
-    parser.add_argument("-s", "--slippage-perc", type=float, default=0.0005, help="The percentage in slippage applied per share bought/sold.")
+    parser.add_argument("-p", "--slippage-perc", type=float, default=0.0005, help="The percentage in slippage applied per share bought/sold.")
 
     args = parser.parse_args()
 
@@ -40,11 +49,32 @@ if __name__ == "__main__":
         slippage=args.slippage_perc
     )
 
-    sma_crossover_strategy = SMACrossoverStrategy(
-        event_manager=event_manager,
-        fast_window=10,
-        slow_window=50
-    )
+    execution_handler = ExecutionHandler(event_manager=event_manager, portfolio=broker.portfolio, max_position_perc=0.15)
 
     engine = SimulationEngine(data_feed=data_feed, event_manager=event_manager)
+    strategy = engine.determine_strategy(args.strategy, event_manager)
     engine.run()
+
+    total_return_gbp = broker.portfolio_value - broker.portfolio.initial_capital
+    total_return_pct = (total_return_gbp / broker.portfolio.initial_capital) * 100.0
+    holdings_value = broker.portfolio_value - broker.cash
+
+    logger.info("=" * 97)
+    logger.info("BACKTEST SIMULATION COMPLETED — FINAL PORTFOLIO SUMMARY")
+    logger.info("=" * 97)
+
+    logger.info(f"Initial Capital    : £{broker.portfolio.initial_capital:,.2f}")
+    logger.info(f"Final Total Equity : £{broker.portfolio_value:,.2f}")
+    logger.info(f"Total Net Return   : £{total_return_gbp:+,.2f} ({total_return_pct:+.2f}%)")
+    logger.info(f"Ending Cash        : £{broker.cash:,.2f}")
+    logger.info(f"Ending Holdings    : £{holdings_value:,.2f}")
+
+    if broker.portfolio._positions:
+        logger.info("Open Positions     :")
+        for symbol, qty in broker.portfolio._positions.items():
+            if qty != 0:
+                logger.info(f"  - {symbol}: {qty:+d} shares")
+    else:
+        logger.info("Open Positions     : None (Flat)")
+
+    logger.info("=" * 97)

@@ -1,5 +1,5 @@
 from collections import defaultdict
-from ..data.events import FillEvent
+from ..data.events import FillEvent, Direction
 from ..utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -15,8 +15,8 @@ class Portfolio:
         self._positions = defaultdict(int)
 
     def update_on_fill(self, fill_event: FillEvent):
-        trade_cost = fill_event.fill_cost * fill_event.quantity
-        direction_mult = 1 if fill_event.direction == "BUY" else -1
+        trade_cost = fill_event.fill_price * fill_event.quantity
+        direction_mult = 1 if fill_event.direction == Direction.BUY else -1
 
         # Update share position and latest fill price
         self._positions[fill_event.symbol] += fill_event.quantity * direction_mult
@@ -26,7 +26,7 @@ class Portfolio:
 
         logger.info(
             f"[{fill_event.symbol}] PORTFOLIO FILL UPDATED: {fill_event.direction} {fill_event.quantity} shares "
-            f"@ £{fill_event.fill_cost:.2f} (Cost: £{trade_cost:.2f}, Fee: £{fill_event.commission:.2f}) | "
+            f"@ £{fill_event.fill_price:.2f} (Cost: £{trade_cost:.2f}, Fee: £{fill_event.commission:.2f}) | "
             f"New Position: {self._positions[fill_event.symbol]} shares | Cash Balance: £{self.cash:.2f}"
         )
 

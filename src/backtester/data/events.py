@@ -15,6 +15,9 @@ class Direction(Enum):
     BUY = 1
     SELL = 2
 
+    def __str__(self):
+        return self.name
+
 class EventType(Enum):
     MARKET = 1
     SIGNAL = 2
@@ -39,10 +42,9 @@ class SignalEvent(Event):
         self.strength = strength
 
 class OrderEvent(Event):
-    def __init__(self, symbol: str, order_type: OrderType, quantity: int, direction: Direction):
+    def __init__(self, symbol: str, quantity: int, direction: Direction):
         self.type = EventType.ORDER
         self.symbol = symbol
-        self.order_type = order_type
         self.quantity = quantity
         self.direction = direction
 
