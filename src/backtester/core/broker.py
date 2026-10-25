@@ -26,16 +26,16 @@ class Broker:
 
     def _on_market_bar(self, market_event: MarketEvent):
         bar = market_event.bar
-        orders = self._pending_orders[market_event.symbol]
+        self.portfolio.update_latest_price(market_event.symbol, bar.close)
 
+        orders = self._pending_orders[market_event.symbol]
         while orders:
             order = orders.popleft()
             slippage_factor = self.slippage if order.direction == Direction.BUY else -self.slippage
+
             fill_price = bar.close * (1.0 + slippage_factor)
-
-            # Calculate Commission (£1.00 min)
-            commission = max(1.00, self.commission_per_share * order.quantity)
-
+            commission = self.commission_per_share * order.quantity
+            
             fill = FillEvent(
                 time_index=bar.timestamp,
                 symbol=order.symbol,
@@ -52,7 +52,7 @@ class Broker:
 
             self.portfolio.update_on_fill(fill)
 
-        self.portfolio.update_valuation()
+        self.portfolio.update_valuation(market_event.bar.timestamp)
 
     @property
     def cash(self) -> float:

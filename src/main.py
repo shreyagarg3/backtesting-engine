@@ -6,8 +6,11 @@ from backtester.utils.event_manager import EventManager
 from backtester.core.broker import Broker
 from backtester.core.execution_handler import ExecutionHandler
 from backtester.data.events import MarketEvent
-from backtester.strategies.sma_crossover_strategy import SMACrossoverStrategy
-from backtester.strategies.base_strategy import BaseStrategy
+from backtester.strategies.sma_crossover import SMACrossover
+from backtester.strategies.bollinger_mean_reversion import BollingerMeanReversion
+from backtester.strategies.stochastic_crossover import StochasticCrossover
+from backtester.performance.sharpe_ratio import calculate_sharpe_ratio
+from backtester.strategies.strategy import Strategy
 from backtester.utils.logger import get_logger
 
 project_root = Path(__file__).resolve().parents[1]
@@ -24,18 +27,25 @@ class SimulationEngine:
             # TO DO: Add support for multi-asset backtesting (hardcoded 'BTC' for now)
             self.event_manager.publish("market_bars", MarketEvent(symbol="BTC", bar=bar))
 
-    def determine_strategy(self, strategy: str, event_manager: EventManager) -> BaseStrategy:
+    def determine_strategy(self, strategy: str, event_manager: EventManager) -> Strategy:
         match strategy:
             case "sma":
-                return SMACrossoverStrategy(event_manager=event_manager, fast_window=10, slow_window=50)
+                return SMACrossover(event_manager=event_manager, fast_window=10, slow_window=50)
+            case "bb":
+                return BollingerMeanReversion(event_manager=event_manager, window=50, num_std=2.0)
+            case "sc":
+                return StochasticCrossover(event_manager=event_manager, k_window=14, d_window=3)
+            case _:
+                raise ValueError(f"Unknown strategy specified: '{strategy}'. Choose from 'sma', 'bb', or 'sc'.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run a backtest against historical market data.")
-    parser.add_argument("-s", "--strategy", required=True, help="Name of the strategy to backtest against.")
+    parser.add_argument("-s", "--strategy", required=True, help="Name of the strategy to backtest against. Choose from 'sma', 'bb', or 'sc'.")
     parser.add_argument("-f", "--filename", required=True, help="Name of the CSV file (stored in output_data directory).")
     parser.add_argument("-i", "--initial-capital", type=float, default=100000.0, help="Initial cash balance.")
     parser.add_argument("-c", "--commission-per-share", type=float, default=0.005, help="The amount of commission to be paid per share bought/sold.")
     parser.add_argument("-p", "--slippage-perc", type=float, default=0.0005, help="The percentage in slippage applied per share bought/sold.")
+    parser.add_argument("-m", "--max-position-perc", type=float, default=0.30, help="The maximum portfolio allocation percentage allowed for a single position.")
 
     args = parser.parse_args()
 
@@ -49,25 +59,33 @@ if __name__ == "__main__":
         slippage=args.slippage_perc
     )
 
-    execution_handler = ExecutionHandler(event_manager=event_manager, portfolio=broker.portfolio, max_position_perc=0.15)
+    _ = ExecutionHandler(
+        event_manager=event_manager, 
+        portfolio=broker.portfolio, 
+        max_position_perc=args.max_position_perc
+    )
 
     engine = SimulationEngine(data_feed=data_feed, event_manager=event_manager)
-    strategy = engine.determine_strategy(args.strategy, event_manager)
+    _ = engine.determine_strategy(args.strategy, event_manager)
+
     engine.run()
 
     total_return_gbp = broker.portfolio_value - broker.portfolio.initial_capital
     total_return_pct = (total_return_gbp / broker.portfolio.initial_capital) * 100.0
     holdings_value = broker.portfolio_value - broker.cash
 
-    logger.info("=" * 97)
-    logger.info("BACKTEST SIMULATION COMPLETED — FINAL PORTFOLIO SUMMARY")
-    logger.info("=" * 97)
+    sharpe_ratio = calculate_sharpe_ratio(broker.portfolio.equity_curve)
+
+    logger.info("=" * 100)
+    logger.info("BACKTEST COMPLETED - FINAL PORTFOLIO SUMMARY")
+    logger.info("=" * 100)
 
     logger.info(f"Initial Capital    : £{broker.portfolio.initial_capital:,.2f}")
     logger.info(f"Final Total Equity : £{broker.portfolio_value:,.2f}")
     logger.info(f"Total Net Return   : £{total_return_gbp:+,.2f} ({total_return_pct:+.2f}%)")
     logger.info(f"Ending Cash        : £{broker.cash:,.2f}")
     logger.info(f"Ending Holdings    : £{holdings_value:,.2f}")
+    logger.info(f"Sharpe Ratio       : {sharpe_ratio:.2f}")
 
     if broker.portfolio._positions:
         logger.info("Open Positions     :")
@@ -77,4 +95,4 @@ if __name__ == "__main__":
     else:
         logger.info("Open Positions     : None (Flat)")
 
-    logger.info("=" * 97)
+    logger.info("=" * 100)

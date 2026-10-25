@@ -22,7 +22,7 @@ class ExecutionHandler:
 
     def _on_signal(self, signal: SignalEvent):
         self._pending_signals[signal.symbol] = signal
-        logger.info(f"[{signal.symbol}] SIGNAL RECEIVED & STAGED: {signal.signal_type.name}")
+        logger.info(f"[{signal.symbol}] SIGNAL RECEIVED & STAGED: {signal.signal_type.name} at {signal.timestamp}")
 
     def _on_market_bar(self, market_event: MarketEvent):
         bar = market_event.bar
@@ -31,9 +31,9 @@ class ExecutionHandler:
 
         if symbol in self._pending_signals:
             signal = self._pending_signals.pop(symbol)
-            self._execute_signal(signal, bar.close, bar.timestamp)
+            self._execute_signal(signal, bar.close)
 
-    def _execute_signal(self, signal: SignalEvent, current_price: float, timestamp):
+    def _execute_signal(self, signal: SignalEvent, price: float):
         position_size = self.portfolio.get_position(signal.symbol)
 
         if signal.signal_type == SignalType.EXIT:
@@ -46,31 +46,30 @@ class ExecutionHandler:
 
             logger.info(
                 f"[{signal.symbol}] EXIT ORDER CREATED (T+1): Submitting {direction} "
-                f"for {abs(position_size)} shares at est. £{current_price:.2f}"
+                f"for {abs(position_size)} shares @ £{price:.2f}"
             )
+
             self.event_manager.publish("pending_orders", order)
             return
 
         # Sizing based on current bar's price (T+1)
         target_allocation = self.portfolio.total_valuation * self.max_position_perc * signal.strength
-        quantity = int(target_allocation // current_price)
+        quantity = int(target_allocation // price)
 
-        if quantity <= 0:
-            logger.warning(f"[{signal.symbol}] ORDER CANCELED: Calculated quantity is 0 at price £{current_price:.2f}")
+        if quantity == 0:
+            logger.warning(f"[{signal.symbol}] ORDER CANCELLED: Calculated quantity is 0 at price £{price:.2f}")
             return
 
         direction = Direction.BUY if signal.signal_type == SignalType.LONG else Direction.SELL
         if direction == Direction.BUY:
-            max_affordable = int(self.portfolio.cash // current_price)
+            max_affordable = int(self.portfolio.cash // price)
             quantity = min(quantity, max_affordable)
 
-            if quantity <= 0:
-                logger.warning(f"[{signal.symbol}] BUY REJECTED: Insufficient cash (£{self.portfolio.cash:.2f}) at price £{current_price:.2f}.")
+            if quantity == 0:
+                logger.warning(f"[{signal.symbol}] BUY REJECTED: Insufficient cash (£{self.portfolio.cash:.2f}) at price £{price:.2f}.")
                 return
 
-        logger.info(
-            f"[{signal.symbol}] ORDER CREATED (T+1): {direction} {quantity} shares @ est. £{current_price:.2f}"
-        )
+        logger.info(f"[{signal.symbol}] ORDER CREATED (T+1): {direction} {quantity} shares @ £{price:.2f}")
 
         order = OrderEvent(symbol=signal.symbol, direction=direction, quantity=quantity)
         self.event_manager.publish("pending_orders", order)

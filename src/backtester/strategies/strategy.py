@@ -5,7 +5,7 @@ from ..data.events import SignalEvent, MarketEvent, Bar
 from ..utils.event_manager import EventManager
 
 
-class BaseStrategy(ABC):
+class Strategy(ABC):
     def __init__(self, event_manager: EventManager, window_size: int):
         self.event_manager = event_manager
         self.symbol_data: Dict[str, deque] = defaultdict(lambda: deque(maxlen=window_size))
