@@ -2,6 +2,7 @@ import argparse
 import csv
 import requests
 from pathlib import Path
+
 from ..backtester.utils.logger import get_logger
 
 project_root = Path(__file__).resolve().parents[2]

@@ -1,5 +1,4 @@
 from typing import Optional
-import numpy as np
 from ..data.events import Bar, SignalType, SignalEvent
 from ..indicators.moving_average import compute_sma
 from ..utils.event_manager import EventManager

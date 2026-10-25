@@ -1,6 +1,7 @@
 import numpy as np
 from typing import List, Tuple
 
+
 def compute_stochastic(highs: List[float], lows: List[float], closes: List[float], k_window: int, d_window: int) -> Tuple[float, float]:
     required_len = k_window + d_window - 1
     if len(closes) < required_len:

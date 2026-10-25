@@ -1,6 +1,7 @@
 from typing import Dict
 from collections import defaultdict
 from collections import deque
+
 from ..data.events import OrderEvent, FillEvent, MarketEvent, Direction
 from ..utils.event_manager import EventManager
 from ..utils.logger import get_logger

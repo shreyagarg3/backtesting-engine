@@ -1,17 +1,20 @@
 import argparse
 from pathlib import Path
 
-from backtester.utils.data_feed import DataFeed
-from backtester.utils.event_manager import EventManager
 from backtester.core.broker import Broker
 from backtester.core.execution_handler import ExecutionHandler
+
 from backtester.data.events import MarketEvent
+
 from backtester.strategies.sma_crossover import SMACrossover
 from backtester.strategies.bollinger_mean_reversion import BollingerMeanReversion
 from backtester.strategies.stochastic_crossover import StochasticCrossover
-from backtester.performance.sharpe_ratio import calculate_sharpe_ratio
 from backtester.strategies.strategy import Strategy
+
+from backtester.utils.performance import compute_sharpe_ratio, compute_max_drawdown, compute_volatility
 from backtester.utils.logger import get_logger
+from backtester.utils.data_feed import DataFeed
+from backtester.utils.event_manager import EventManager
 
 project_root = Path(__file__).resolve().parents[1]
 logger = get_logger(__name__)
@@ -74,7 +77,9 @@ if __name__ == "__main__":
     total_return_pct = (total_return_gbp / broker.portfolio.initial_capital) * 100.0
     holdings_value = broker.portfolio_value - broker.cash
 
-    sharpe_ratio = calculate_sharpe_ratio(broker.portfolio.equity_curve)
+    sharpe_ratio = compute_sharpe_ratio(broker.portfolio.equity_curve)
+    max_drawdown = compute_max_drawdown(broker.portfolio.equity_curve)
+    volatility = compute_volatility(broker.portfolio.equity_curve)
 
     logger.info("=" * 100)
     logger.info("BACKTEST COMPLETED - FINAL PORTFOLIO SUMMARY")
@@ -86,6 +91,8 @@ if __name__ == "__main__":
     logger.info(f"Ending Cash        : £{broker.cash:,.2f}")
     logger.info(f"Ending Holdings    : £{holdings_value:,.2f}")
     logger.info(f"Sharpe Ratio       : {sharpe_ratio:.2f}")
+    logger.info(f"Max Drawdown       : {max_drawdown:.2f}%")
+    logger.info(f"Volatility         : {volatility:.2f}%")
 
     if broker.portfolio._positions:
         logger.info("Open Positions     :")

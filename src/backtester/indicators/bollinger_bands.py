@@ -1,6 +1,7 @@
 import numpy as np
 from typing import Tuple, List
 
+
 def compute_bollinger_bands(closes: List[float], window: int, num_std: float) -> Tuple[float, float, float]:
     if len(closes) < window:
         raise ValueError(f"Insufficient data ({len(closes)} bars but window requires at least {window} bars).")

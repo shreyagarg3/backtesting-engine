@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Optional
 from collections import defaultdict, deque
+
 from ..data.events import SignalEvent, MarketEvent, Bar
 from ..utils.event_manager import EventManager
 

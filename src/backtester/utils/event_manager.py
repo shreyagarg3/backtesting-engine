@@ -2,6 +2,7 @@ from collections import defaultdict
 from typing import Callable, Dict, List
 from ..data.events import Event
 
+
 class EventManager:
     def __init__(self):
         self._subscribers: Dict[str, List[Callable]] = defaultdict(list)

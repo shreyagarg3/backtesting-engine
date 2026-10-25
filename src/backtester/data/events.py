@@ -2,6 +2,7 @@ from datetime import datetime
 from enum import Enum
 from ..data.bar import Bar
 
+
 class SignalType(Enum):
     LONG = 1
     SHORT = 2

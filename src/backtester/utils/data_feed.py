@@ -3,6 +3,7 @@ from pathlib import Path
 from datetime import datetime
 from ..data.bar import Bar
 
+
 class DataFeed:
     def __init__(self, filepath: Path):
         self._filepath = filepath
